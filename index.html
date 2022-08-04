@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>NGINX RTMP Server</title>
+	<style>
+		table, th, td {
+		border: 1px solid black;
+		border-collapse: collapse;
+		}
+		th, td {
+		text-align: left;
+		padding: 4px;
+		}
+	</style>
+</head>
+<h2>NGINX RTMP and HTTP/HLS Server</h2>
+<table>
+	<caption>Livestreams (HTTP or RTMP)</caption>
+	<tr>
+		<th>Stream</th>
+		<th>Link</th>
+	</tr>
+	<tr>
+		<td>Full Resolution</td>
+		<td>/live/STREAMKEY</td>
+	</tr>
+	<tr>
+		<td>Low Resolution(480p)</td>
+		<td>/lowres/STREAMKEY</td>
+	</tr>
+	<tr>
+		<td>Video on Demand</td>
+		<td>/vod/FILENAME</td>
+	</tr>
+</table>
+<br>
+<table>
+	<caption>Quicklinks</caption>
+	<tr>
+		<th>Page</th>
+		<th>Link</th>
+	</tr>
+	<tr>
+		<td>Livestreams</td>
+		<td><a href="/streams.html">/live</a></td>
+	</tr>
+	<tr>
+		<td>Videos on Demand</td>
+		<td><a href="/videos.html">/vod</a></td>
+	</tr>
+	<tr>
+		<td>NGINX Statistics</td>
+		<td><a href="/stats">/stats</a></td>
+	</tr>
+	<tr>
+		<td>RTMP Statistics</td>
+		<td><a href="/stats-rtmp">/stats-rtmp</a></td>
+	</tr>
+	<tr>
+		<td>RTMP Statistics XML</td>
+		<td><a href="/stats-rtmp-raw">/stats-rtmp-raw</a></td>
+	</tr>
+</table>
+</html>
