@@ -7,7 +7,7 @@ HTMLFILENEW='/tmp/videos.html'
 if ! [ -d /vod ]; then mkdir /vod; fi
 
 # convert .flv recording tp .mp4
-[ -f "/tmp/$1.flv" ] && ffmpeg -i "/tmp/$1.flv" -c copy -f mp4 "/vod/$1.mp4"
+[ -f "/tmp/$1.flv" ] && (ffmpeg -y -i "/tmp/$1.flv" -c copy -f mp4 "/vod/$1.mp4" || ffmpeg -y -i "/tmp/$1.flv" -f mp4 "/vod/$1.mp4" || rm "/vod/$1.mp4")
 
 # generate html with videojs player
 gen_player()
