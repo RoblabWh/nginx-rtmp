@@ -1,11 +1,11 @@
 # Installation
 ```
-docker build -t nginx-rtmp .
+docker build -t nginx-rtmp:mmdet .
 ```
 # Running
-Run server on native ports and with the option to store vods permanently on the host
+Run server on native ports and with the option to store vods permanently on the host and option to run MMDetection
 ```
-docker run --rm --net=host [-v /PATH/TO/VOD:/vod] nginx-rtmp
+nvidia-docker run --rm --net=host [-v /PATH/TO/VOD:/vod] [-v /PATH/TO/MMDET_CONFIG:/config.py:ro -v /PATH/TO/MMDET_CHECKPOINT:/checkpoint.pth:ro] nginx-rtmp
 ```
 Run server with port mapping and permanent vod option
 ```

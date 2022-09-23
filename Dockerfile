@@ -1,45 +1,48 @@
-ARG NGINX_VERSION=stable
-FROM nginx:$NGINX_VERSION-alpine AS builder
-ARG RTMP_VERSION=1.2.2
+ARG PYTORCH="1.6.0"
+ARG CUDA="10.1"
+ARG CUDNN="7"
 
-RUN wget http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz && \
-    tar -xf nginx-$NGINX_VERSION.tar.gz
+FROM nginx:stable-alpine as nginx
 
-RUN wget https://github.com/arut/nginx-rtmp-module/archive/refs/tags/v$RTMP_VERSION.tar.gz && \
-    tar -xf v$RTMP_VERSION.tar.gz
+FROM pytorch/pytorch:${PYTORCH}-cuda${CUDA}-cudnn${CUDNN}-devel
 
-RUN apk add gcc \
-            libc-dev \
-            make \
-            openssl-dev \
-            pcre-dev \
-            zlib-dev \
-            linux-headers \
-            curl \
-            gnupg \
-            libxslt-dev \
-            gd-dev \
-            geoip-dev
+ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0+PTX"
+ENV TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
+ENV CMAKE_PREFIX_PATH="$(dirname $(which conda))/../"
 
-RUN CONFARGS=$(nginx -V 2>&1 | sed -n -e 's/^.*arguments: //p') \
-    CONFARGS=${CONFARGS/-Os -fomit-frame-pointer -g/-Os} && \
-    cd /nginx-$NGINX_VERSION && \
-    ./configure $CONFARGS --add-dynamic-module=/nginx-rtmp-module-$RTMP_VERSION/ && \
-    make -j${nproc} modules && \
-    mv /nginx-rtmp-module-$RTMP_VERSION/stat.xsl /srv/rtmp_stat.xsl
+# To fix GPG key error when running apt-get update
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/7fa2af80.pub
 
-RUN wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz https://johnvansickle.com/ffmpeg/release-readme.txt && \
-    tar -xf ffmpeg-release-amd64-static.tar.xz && \
-    mv /ffmpeg-$(cat release-readme.txt | grep version: | sed 's/\s*version:\s*//')-amd64-static/ffmpeg /usr/bin
+RUN apt-get update && apt-get install -y ffmpeg libsm6 libxext6 git ninja-build libglib2.0-0 libsm6 libxrender-dev libxext6 nginx libnginx-mod-rtmp wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
+# Install MMCV
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools
+RUN pip install --no-cache-dir mmcv-full==1.3.17 -f https://download.openmmlab.com/mmcv/dist/cu101/torch1.6.0/index.html
 
-FROM nginx:$NGINX_VERSION-alpine
-ENV TZ=Europe/Berlin
-COPY --from=builder /nginx-$NGINX_VERSION/objs/ngx_rtmp_module.so /etc/nginx/modules/
-COPY --from=builder /srv/rtmp_stat.xsl /srv/
-COPY --from=builder /usr/bin/ffmpeg /usr/bin/
+# Install MMDetection
+RUN conda clean --all
+RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection
+WORKDIR /mmdetection
+ENV FORCE_CUDA="1"
+RUN pip install --no-cache-dir -r requirements/build.txt
+RUN pip install --no-cache-dir -e .
+
+# Install custom NGINX server
+RUN wget https://raw.githubusercontent.com/arut/nginx-rtmp-module/master/stat.xsl -O /srv/rtmp_stat.xsl
+COPY --from=nginx /docker-entrypoint.d/ /docker-entrypoint.d/
+COPY --from=nginx /docker-entrypoint.sh /
+COPY --from=nginx /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/
+RUN sed -i s/\"debian\"/\"ubuntu\"/ /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY gen-vod.sh gen-live.sh /docker-entrypoint.d/
 COPY index.html /srv/
+COPY classifier.py /usr/bin/classifier
 
+# Set configuration
+WORKDIR /
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
+CMD [ "nginx", "-g", "daemon off;" ]
 EXPOSE 80 1935

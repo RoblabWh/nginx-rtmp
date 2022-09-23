@@ -7,7 +7,7 @@ HTMLFILENEW='/tmp/videos.html'
 if ! [ -d /vod ]; then mkdir /vod; fi
 
 # convert .flv recording tp .mp4
-[ -f "/tmp/$1.flv" ] && ffmpeg -i "/tmp/$1.flv" -c copy -f mp4 "/vod/$1.mp4"
+[ -f "/tmp/$1.flv" ] && (ffmpeg -y -i "/tmp/$1.flv" -c copy -f mp4 "/vod/$1.mp4" || ffmpeg -y -i "/tmp/$1.flv" -f mp4 "/vod/$1.mp4" || rm "/vod/$1.mp4")
 
 # generate html with videojs player
 gen_player()
@@ -34,7 +34,7 @@ gen_player()
 }
 
 # search vods
-FILES=$(find /vod -iname *.mp4 | sort)
+FILES=$(find /vod -iname "*.mp4" | sort)
 
 # generate html
 printf "<!DOCTYPE html>
@@ -65,8 +65,13 @@ printf "<!DOCTYPE html>
 for i in $FILES; do
   STAMP=${i##*_}
   STAMP=${STAMP%.*}
-  DATE=$(date -d $STAMP +'%d.%m.%Y')
-  TIME=$(date -d $STAMP +'%R')
+  DATE=${STAMP%-*}
+  DAY=${DATE##*.}
+  MONTH=${DATE#*.}
+  MONTH=${MONTH%.*}
+  YEAR=${DATE%%.*}
+  TIME=${STAMP#*-}
+  TIME=${TIME%:*}
   FILE=${i##/vod/}
   BASE=${FILE%.*}
   gen_player $BASE
@@ -76,7 +81,7 @@ for i in $FILES; do
     <td><a href=\"/$BASE.html\">view</a></td>
     <td><a href=\"$i\" download>download</a></td>
     <td>$TIME</td>
-    <td>$DATE</td>
+    <td>$DAY.$MONTH.$YEAR</td>
   </tr>" >> "$HTMLFILENEW"
 done
 

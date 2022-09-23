@@ -53,16 +53,22 @@ gen_html()
       <th>Stream</th>
       <th>Full Resolution</th>
       <th>480p Resolution</th>
+      <th>Full Resolution Detection</th>
+      <th>480p Resolution Detection</th>
     </tr>" > "$HTMLFILENEW"
 
   for i in $STREAMS; do
     gen_player "$i" "live"
     gen_player "$i" "lowres"
+    gen_player "$i" "detection"
+    gen_player "$i" "detection-lowres"
     printf "
     <tr>
       <td>$i</td>
       <td><a href=\"/$i-live.html\">view</a></td>
       <td><a href=\"/$i-lowres.html\">view</a></td>
+      <td><a href=\"/$i-detection.html\">view</a></td>
+      <td><a href=\"/$i-detection-lowres.html\">view</a></td>
     </tr>" >> "$HTMLFILENEW"
   done
 
